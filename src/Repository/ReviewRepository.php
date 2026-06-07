@@ -39,4 +39,22 @@ class ReviewRepository extends ServiceEntityRepository
             'count' => (int) $result['reviewsCount'],
         ];
     }
+
+    /**
+     * Note moyenne et nombre total d'avis sur toute la plateforme (cf. GET /api/admin/stats).
+     *
+     * @return array{average: float|null, count: int}
+     */
+    public function getPlatformStats(): array
+    {
+        $result = $this->createQueryBuilder('r')
+            ->select('AVG(r.rating) AS avgRating', 'COUNT(r.id) AS reviewsCount')
+            ->getQuery()
+            ->getSingleResult();
+
+        return [
+            'average' => null !== $result['avgRating'] ? round((float) $result['avgRating'], 2) : null,
+            'count' => (int) $result['reviewsCount'],
+        ];
+    }
 }

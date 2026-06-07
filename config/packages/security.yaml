@@ -21,6 +21,7 @@ security:
             pattern: ^/api/login
             stateless: true
             provider: app_user_provider
+            user_checker: App\Security\UserChecker
             json_login:
                 check_path: /api/login
                 username_path: email
@@ -33,11 +34,13 @@ security:
             pattern: ^/api
             stateless: true
             provider: app_user_provider
+            user_checker: App\Security\UserChecker
             jwt: ~
 
         main:
             lazy: true
             provider: app_user_provider
+            user_checker: App\Security\UserChecker
 
     # Note: Only the *first* matching rule is applied
     access_control:
