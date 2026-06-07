@@ -50,6 +50,9 @@ security:
         - { path: ^/api/categories, roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: ^/api/businesses, roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: ^/api/search, roles: PUBLIC_ACCESS, methods: [GET] }
+        # Notifications serveur-à-serveur de Stripe : pas de JWT possible, l'authenticité
+        # est garantie par la signature HMAC vérifiée manuellement dans le contrôleur.
+        - { path: ^/api/stripe/webhook, roles: PUBLIC_ACCESS, methods: [POST] }
         - { path: ^/api/admin, roles: ROLE_ADMIN }
         - { path: ^/api/artisan, roles: ROLE_ARTISAN }
         - { path: ^/api, roles: ROLE_USER }

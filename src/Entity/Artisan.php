@@ -40,6 +40,15 @@ class Artisan
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $ownershipDocument = null;
 
+    /**
+     * Identifiant du « Customer » Stripe associé (cf. ARCHITECTURE.md « Paiement »).
+     * Créé paresseusement à la première démarche d'abonnement plutôt qu'à l'inscription,
+     * afin de ne pas coupler la création de compte à la disponibilité de l'API Stripe ;
+     * il sert ensuite de clé de correspondance pour synchroniser l'abonnement via webhook.
+     */
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $stripeCustomerId = null;
+
     #[ORM\OneToOne(inversedBy: 'artisan', targetEntity: Business::class, cascade: ['persist', 'remove'])]
     #[ORM\JoinColumn(unique: true)]
     private ?Business $business = null;
@@ -119,6 +128,18 @@ class Artisan
     public function setOwnershipDocument(?string $ownershipDocument): static
     {
         $this->ownershipDocument = $ownershipDocument;
+
+        return $this;
+    }
+
+    public function getStripeCustomerId(): ?string
+    {
+        return $this->stripeCustomerId;
+    }
+
+    public function setStripeCustomerId(?string $stripeCustomerId): static
+    {
+        $this->stripeCustomerId = $stripeCustomerId;
 
         return $this;
     }

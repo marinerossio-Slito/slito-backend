@@ -9,6 +9,12 @@
 parameters:
     app.frontend_reset_password_url: '%env(FRONTEND_RESET_PASSWORD_URL)%'
     app.mailer_sender_address: '%env(MAILER_SENDER_ADDRESS)%'
+    app.stripe_secret_key: '%env(STRIPE_SECRET_KEY)%'
+    app.stripe_webhook_secret: '%env(STRIPE_WEBHOOK_SECRET)%'
+    app.stripe_price_monthly: '%env(STRIPE_PRICE_MONTHLY)%'
+    app.stripe_price_yearly: '%env(STRIPE_PRICE_YEARLY)%'
+    app.stripe_checkout_success_url: '%env(STRIPE_CHECKOUT_SUCCESS_URL)%'
+    app.stripe_checkout_cancel_url: '%env(STRIPE_CHECKOUT_CANCEL_URL)%'
 
 services:
     # default configuration for services in *this* file
@@ -18,6 +24,12 @@ services:
         bind:
             string $frontendResetPasswordUrl: '%app.frontend_reset_password_url%'
             string $mailerSenderAddress: '%app.mailer_sender_address%'
+            string $stripeSecretKey: '%app.stripe_secret_key%'
+            string $stripeWebhookSecret: '%app.stripe_webhook_secret%'
+            string $stripePriceMonthly: '%app.stripe_price_monthly%'
+            string $stripePriceYearly: '%app.stripe_price_yearly%'
+            string $stripeCheckoutSuccessUrl: '%app.stripe_checkout_success_url%'
+            string $stripeCheckoutCancelUrl: '%app.stripe_checkout_cancel_url%'
 
     # makes classes in src/ available to be used as services
     # this creates a service per class whose id is the fully-qualified class name
