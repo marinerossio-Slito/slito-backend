@@ -4,7 +4,10 @@ doctrine:
 
         # IMPORTANT: You MUST configure your server version,
         # either here or in the DATABASE_URL env var (see .env file)
-        #server_version: '16'
+        # Fixe en dur : la chaine de connexion fournie par Render (via
+        # fromDatabase) ne contient pas "?serverVersion=...", ce qui
+        # provoquait "Invalid platform version "" specified" au demarrage.
+        server_version: '16'
 
         profiling_collect_backtrace: '%kernel.debug%'
     orm:
