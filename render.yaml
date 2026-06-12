@@ -3,10 +3,12 @@
 # Utilisation : sur render.com, "New +" > "Blueprint", connecter ce dépôt
 # GitHub. Render lit ce fichier et propose de créer les services ci-dessous.
 #
-# IMPORTANT : avant ou après le premier déploiement, remplace les valeurs
-# "CHANGE-MOI" ci-dessous par l'URL réelle du frontend Vercel (voir
-# DEPLOIEMENT.md, étape 5). Une modification de variable d'environnement
-# déclenche un redéploiement automatique.
+# Le frontend Vercel est déployé sur https://slito-frontend.vercel.app
+# (variables CORS_ALLOW_ORIGIN, FRONTEND_RESET_PASSWORD_URL,
+# STRIPE_CHECKOUT_*_URL ci-dessous). Si ce nom de projet Vercel change un
+# jour, mets à jour ces variables ici (ou directement dans Render > Environment
+# — une modification de variable d'environnement déclenche un redéploiement
+# automatique).
 
 databases:
   - name: slito-db
@@ -56,15 +58,15 @@ services:
       - key: JWT_PASSPHRASE
         generateValue: true
 
-      # --- À adapter une fois le frontend Vercel déployé (étape 5) ---
+      # --- Frontend Vercel (slito-frontend.vercel.app) ---
       - key: FRONTEND_RESET_PASSWORD_URL
-        value: "https://CHANGE-MOI.vercel.app/mot-de-passe-oublie"
+        value: "https://slito-frontend.vercel.app/mot-de-passe-oublie"
       - key: CORS_ALLOW_ORIGIN
-        value: "^https://CHANGE-MOI(-[a-zA-Z0-9-]+)*\\.vercel\\.app$"
+        value: "^https://slito-frontend(-[a-zA-Z0-9-]+)*\\.vercel\\.app$"
       - key: STRIPE_CHECKOUT_SUCCESS_URL
-        value: "https://CHANGE-MOI.vercel.app/artisan/abonnement?paiement=succes"
+        value: "https://slito-frontend.vercel.app/artisan/abonnement?paiement=succes"
       - key: STRIPE_CHECKOUT_CANCEL_URL
-        value: "https://CHANGE-MOI.vercel.app/artisan/abonnement?paiement=annule"
+        value: "https://slito-frontend.vercel.app/artisan/abonnement?paiement=annule"
 
       # --- Stripe : valeurs de test (non fonctionnelles tant qu'un vrai
       # compte Stripe test n'est pas branché — voir DEPLOIEMENT.md) ---
