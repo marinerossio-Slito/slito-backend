@@ -23,12 +23,13 @@ fi
 echo "==> Migrations Doctrine..."
 php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
 
-echo "==> Assets..."
-php bin/console assets:install public --env=prod --no-interaction || true
-php bin/console importmap:install --no-interaction || true
-
 echo "==> Préchauffage du cache..."
-php bin/console cache:clear --env=prod --no-debug || true
+# Pas d'assets:install / importmap:install : ce backend est une API (pas de
+# vue Twig utilisant Turbo/Stimulus/AssetMapper), et importmap:install
+# téléchargeait des paquets JS depuis cdn.jsdelivr.net à chaque démarrage du
+# conteneur, ce qui bloquait/échouait (exit 126) au lancement sur Render.
+# "timeout" évite qu'un avertisseur de cache imprévu bloque le démarrage.
+timeout 60 php bin/console cache:clear --env=prod --no-debug || true
 
 echo "==> Démarrage du serveur..."
 exec "$@"
