@@ -1,8 +1,10 @@
 # syntax=docker/dockerfile:1
 
 # Image de base FrankenPHP (Caddy + PHP) — fournit "frankenphp" et le script
-# "install-php-extensions". PHP 8.3 satisfait le besoin "PHP >= 8.2" du projet.
-FROM dunglas/frankenphp:1-php8.3
+# "install-php-extensions". Le composer.lock contient des paquets (doctrine/orm,
+# doctrine-bundle, stimulus-bundle...) qui exigent PHP >= 8.4 : on utilise donc
+# PHP 8.4 (le projet exige ">= 8.2", donc 8.4 convient aussi).
+FROM dunglas/frankenphp:1-php8.4
 
 # Extensions PHP nécessaires :
 # - @composer : installe le binaire Composer (absent de l'image de base)
