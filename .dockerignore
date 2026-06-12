@@ -1,0 +1,18 @@
+# Dépendances et caches reconstruits dans l'image
+/vendor/
+/var/
+
+# Secrets et configuration locale — jamais dans l'image
+/config/jwt/*.pem
+/.env.local
+/.env.*.local
+
+# Outils de dev
+/.git
+/.github
+/.idea
+/.vscode
+/.phpunit.cache
+
+# Assets compilés (regénérés au démarrage si besoin)
+/public/assets

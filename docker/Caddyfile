@@ -1,0 +1,14 @@
+{
+	# Render gère le HTTPS en façade ; le conteneur ne sert que du HTTP en
+	# interne. On désactive la gestion automatique des certificats et
+	# l'API d'admin (non nécessaire, et le port 2019 n'est pas exposé).
+	auto_https off
+	admin off
+}
+
+:8080 {
+	root * /app/public
+	encode gzip
+
+	php_server
+}

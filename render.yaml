@@ -1,0 +1,78 @@
+# Blueprint Render — déploiement de démo pour Slito (backend + base de données)
+#
+# Utilisation : sur render.com, "New +" > "Blueprint", connecter ce dépôt
+# GitHub. Render lit ce fichier et propose de créer les services ci-dessous.
+#
+# IMPORTANT : avant ou après le premier déploiement, remplace les valeurs
+# "CHANGE-MOI" ci-dessous par l'URL réelle du frontend Vercel (voir
+# DEPLOIEMENT.md, étape 5). Une modification de variable d'environnement
+# déclenche un redéploiement automatique.
+
+databases:
+  - name: slito-db
+    plan: free
+    region: frankfurt
+    databaseName: slito
+    user: slito
+
+services:
+  - type: web
+    name: slito-backend
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/categories
+    envVars:
+      - key: APP_ENV
+        value: prod
+      - key: APP_SECRET
+        generateValue: true
+      - key: APP_SHARE_DIR
+        value: var/share
+
+      # Base de données (remplie automatiquement à partir du service ci-dessus)
+      - key: DATABASE_URL
+        fromDatabase:
+          name: slito-db
+          property: connectionString
+
+      # File d'attente Messenger : transport "doctrine" = pas de service
+      # supplémentaire nécessaire (table en base)
+      - key: MESSENGER_TRANSPORT_DSN
+        value: "doctrine://default?auto_setup=0"
+
+      # Emails simulés pour la démo (aucun envoi réel)
+      - key: MAILER_DSN
+        value: "null://null"
+      - key: MAILER_SENDER_ADDRESS
+        value: no-reply@slito.fr
+
+      # Authentification JWT — passphrase générée aléatoirement ; la paire de
+      # clés est générée au premier démarrage du conteneur (voir
+      # docker/entrypoint.sh). Comme le disque n'est pas persistant sur le
+      # plan gratuit, elle est régénérée à chaque redéploiement/redémarrage,
+      # ce qui déconnecte les utilisateurs (acceptable pour une démo).
+      - key: JWT_PASSPHRASE
+        generateValue: true
+
+      # --- À adapter une fois le frontend Vercel déployé (étape 5) ---
+      - key: FRONTEND_RESET_PASSWORD_URL
+        value: "https://CHANGE-MOI.vercel.app/mot-de-passe-oublie"
+      - key: CORS_ALLOW_ORIGIN
+        value: "^https://CHANGE-MOI(-[a-zA-Z0-9-]+)*\\.vercel\\.app$"
+      - key: STRIPE_CHECKOUT_SUCCESS_URL
+        value: "https://CHANGE-MOI.vercel.app/artisan/abonnement?paiement=succes"
+      - key: STRIPE_CHECKOUT_CANCEL_URL
+        value: "https://CHANGE-MOI.vercel.app/artisan/abonnement?paiement=annule"
+
+      # --- Stripe : valeurs de test (non fonctionnelles tant qu'un vrai
+      # compte Stripe test n'est pas branché — voir DEPLOIEMENT.md) ---
+      - key: STRIPE_SECRET_KEY
+        value: sk_test_changeme
+      - key: STRIPE_WEBHOOK_SECRET
+        value: whsec_changeme
+      - key: STRIPE_PRICE_MONTHLY
+        value: price_changeme_monthly
+      - key: STRIPE_PRICE_YEARLY
+        value: price_changeme_yearly
