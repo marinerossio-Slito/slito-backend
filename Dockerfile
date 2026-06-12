@@ -5,11 +5,13 @@
 FROM dunglas/frankenphp:1-php8.3
 
 # Extensions PHP nécessaires :
+# - @composer : installe le binaire Composer (absent de l'image de base)
 # - pdo_pgsql : connexion PostgreSQL (Doctrine)
 # - intl      : validation / formats (utilisé par Symfony Validator)
 # - opcache, apcu : performance en production
 # - zip       : dépendances Composer
 RUN install-php-extensions \
+    @composer \
     pdo_pgsql \
     intl \
     opcache \
