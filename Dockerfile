@@ -20,6 +20,17 @@ RUN install-php-extensions \
     apcu \
     zip
 
+# Le binaire "frankenphp" de l'image de base possede la capability Linux
+# "cap_net_bind_service" (definie via setcap), pour pouvoir ecouter sur le
+# port 80/443 sans etre root. Sur certaines plateformes "sandboxees" (dont
+# Render), exec() d'un binaire portant des capabilities renvoie
+# "Operation not permitted". On ecoute sur le port 8080 (non privilegie),
+# donc cette capability est inutile : on la retire en recreant le binaire
+# (cp ne copie pas les attributs etendus par defaut).
+RUN cp /usr/local/bin/frankenphp /tmp/frankenphp \
+    && mv /tmp/frankenphp /usr/local/bin/frankenphp \
+    && chmod 755 /usr/local/bin/frankenphp
+
 WORKDIR /app
 
 ENV APP_ENV=prod \
