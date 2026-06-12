@@ -23,6 +23,9 @@ fi
 echo "==> Migrations Doctrine..."
 php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
 
+echo "==> Comptes de demonstration (si absents)..."
+php bin/console app:seed-demo --no-interaction || true
+
 echo "==> Préchauffage du cache..."
 # Pas d'assets:install / importmap:install : ce backend est une API (pas de
 # vue Twig utilisant Turbo/Stimulus/AssetMapper), et importmap:install
