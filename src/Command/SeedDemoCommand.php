@@ -48,6 +48,9 @@ class SeedDemoCommand extends Command
     public const ARTISAN_EMAIL = 'artisan.demo@slito-demo.fr';
     public const CUSTOMER_EMAIL = 'client.demo@slito-demo.fr';
 
+    /** Photo de couverture de demo (menuisier au travail, Unsplash). */
+    public const DEMO_COVER_IMAGE = 'https://images.unsplash.com/photo-1601058268499-e52658b8bb88?w=1200&q=80';
+
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly UserPasswordHasherInterface $passwordHasher,
@@ -100,8 +103,17 @@ class SeedDemoCommand extends Command
             }
         }
 
-        if (!$accountsJustCreated && !$historyJustSeeded && !$conversationJustSeeded) {
-            $io->writeln('==> Comptes, historique et messagerie de demo deja presents, rien a faire.');
+        // Backfill : ajoute une photo de couverture de demo si l'entreprise
+        // n'en a pas encore (bases de demo creees avant l'ajout de ce champ).
+        // Sur une base neuve, createDemoAccounts l'a deja definie.
+        $coverJustSeeded = false;
+        if (null !== $business && null === $business->getCoverImage()) {
+            $business->setCoverImage(self::DEMO_COVER_IMAGE);
+            $coverJustSeeded = true;
+        }
+
+        if (!$accountsJustCreated && !$historyJustSeeded && !$conversationJustSeeded && !$coverJustSeeded) {
+            $io->writeln('==> Comptes, historique, messagerie et photo de demo deja presents, rien a faire.');
 
             return Command::SUCCESS;
         }
@@ -109,12 +121,13 @@ class SeedDemoCommand extends Command
         $this->entityManager->flush();
 
         $io->success(sprintf(
-            "Demo prete :\n- Artisan : %s\n- Client  : %s\nMot de passe (tous les comptes) : %s%s%s",
+            "Demo prete :\n- Artisan : %s\n- Client  : %s\nMot de passe (tous les comptes) : %s%s%s%s",
             self::ARTISAN_EMAIL,
             self::CUSTOMER_EMAIL,
             self::DEMO_PASSWORD,
             $historyJustSeeded ? "\nHistorique d'activite ajoute (rendez-vous, factures, avis)." : '',
             $conversationJustSeeded ? "\nConversation de demo ajoutee a la messagerie." : '',
+            $coverJustSeeded ? "\nPhoto de couverture de demo ajoutee." : '',
         ));
 
         return Command::SUCCESS;
@@ -159,6 +172,7 @@ class SeedDemoCommand extends Command
         $business = new Business();
         $business->setName('Atelier Bernard - Menuiserie');
         $business->setHeadline('Menuiserie sur mesure, du devis a la pose');
+        $business->setCoverImage(self::DEMO_COVER_IMAGE);
         $business->setDescription(
             "Entreprise de demonstration creee pour presenter Slito : agencement interieur, ".
             "pose de parquet et fabrication de meubles sur mesure. Intervient sur Paris et sa proche banlieue."
