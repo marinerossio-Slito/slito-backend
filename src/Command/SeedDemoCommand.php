@@ -66,6 +66,7 @@ class SeedDemoCommand extends Command
         // (cree les manquantes). Cela alimente l'autocompletion de la recherche
         // meme si une seule categorie a une entreprise de demo.
         [$categoryMap, $categoriesCreated] = $this->ensureCategories();
+        $categoriesRemoved = $this->removeObsoleteCategories();
 
         $userRepository = $this->entityManager->getRepository(User::class);
         $artisanUser = $userRepository->findOneBy(['email' => self::ARTISAN_EMAIL]);
@@ -117,8 +118,8 @@ class SeedDemoCommand extends Command
             $coverJustSeeded = true;
         }
 
-        if (!$accountsJustCreated && !$historyJustSeeded && !$conversationJustSeeded && !$coverJustSeeded && 0 === $categoriesCreated) {
-            $io->writeln('==> Comptes, historique, messagerie, photo et categories de demo deja presents, rien a faire.');
+        if (!$accountsJustCreated && !$historyJustSeeded && !$conversationJustSeeded && !$coverJustSeeded && 0 === $categoriesCreated && 0 === $categoriesRemoved) {
+            $io->writeln('==> Comptes, historique, messagerie, photo et categories de demo deja a jour, rien a faire.');
 
             return Command::SUCCESS;
         }
@@ -126,7 +127,7 @@ class SeedDemoCommand extends Command
         $this->entityManager->flush();
 
         $io->success(sprintf(
-            "Demo prete :\n- Artisan : %s\n- Client  : %s\nMot de passe (tous les comptes) : %s%s%s%s%s",
+            "Demo prete :\n- Artisan : %s\n- Client  : %s\nMot de passe (tous les comptes) : %s%s%s%s%s%s",
             self::ARTISAN_EMAIL,
             self::CUSTOMER_EMAIL,
             self::DEMO_PASSWORD,
@@ -134,6 +135,7 @@ class SeedDemoCommand extends Command
             $conversationJustSeeded ? "\nConversation de demo ajoutee a la messagerie." : '',
             $coverJustSeeded ? "\nPhoto de couverture de demo ajoutee." : '',
             $categoriesCreated > 0 ? sprintf("\n%d categorie(s) de metier ajoutee(s) au catalogue.", $categoriesCreated) : '',
+            $categoriesRemoved > 0 ? sprintf("\n%d categorie(s) hors batiment retiree(s) du catalogue.", $categoriesRemoved) : '',
         ));
 
         return Command::SUCCESS;
@@ -437,17 +439,16 @@ class SeedDemoCommand extends Command
     {
         $repository = $this->entityManager->getRepository(ArtisanCategory::class);
 
+        // Uniquement des metiers du batiment / de la renovation.
         // Les icones sont des noms (mappes vers des emojis cote front, cf.
         // categoryIcon.ts), coherents avec la categorie Menuiserie historique.
         $definitions = [
+            ['name' => 'Maçonnerie', 'slug' => 'maconnerie', 'icon' => 'brick'],
             ['name' => 'Plomberie', 'slug' => 'plomberie', 'icon' => 'droplet'],
             ['name' => 'Électricité', 'slug' => 'electricite', 'icon' => 'bolt'],
             ['name' => 'Menuiserie', 'slug' => 'menuiserie', 'icon' => 'hammer'],
             ['name' => 'Peinture & Décoration', 'slug' => 'peinture-decoration', 'icon' => 'paint-roller'],
-            ['name' => 'Jardinage & Paysagisme', 'slug' => 'jardinage-paysagisme', 'icon' => 'leaf'],
             ['name' => 'Serrurerie', 'slug' => 'serrurerie', 'icon' => 'key'],
-            ['name' => 'Coiffure à domicile', 'slug' => 'coiffure-a-domicile', 'icon' => 'scissors'],
-            ['name' => 'Ménage & Repassage', 'slug' => 'menage-repassage', 'icon' => 'spray-can'],
         ];
 
         $map = [];
@@ -467,6 +468,38 @@ class SeedDemoCommand extends Command
         }
 
         return [$map, $created];
+    }
+
+    /**
+     * Supprime les categories hors batiment seedees par une version anterieure
+     * de la demo (coiffure, menage, jardinage). Par securite, une categorie
+     * encore reliee a une entreprise n'est pas supprimee.
+     *
+     * @return int Nombre de categories supprimees.
+     */
+    private function removeObsoleteCategories(): int
+    {
+        $repository = $this->entityManager->getRepository(ArtisanCategory::class);
+        $businessRepository = $this->entityManager->getRepository(Business::class);
+
+        $obsoleteSlugs = ['jardinage-paysagisme', 'coiffure-a-domicile', 'menage-repassage'];
+
+        $removed = 0;
+        foreach ($obsoleteSlugs as $slug) {
+            $category = $repository->findOneBy(['slug' => $slug]);
+            if (null === $category) {
+                continue;
+            }
+
+            if ($businessRepository->count(['category' => $category]) > 0) {
+                continue;
+            }
+
+            $this->entityManager->remove($category);
+            ++$removed;
+        }
+
+        return $removed;
     }
 
     private function findServiceByName(Business $business, string $name): Service
