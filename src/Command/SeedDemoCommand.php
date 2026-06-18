@@ -62,12 +62,17 @@ class SeedDemoCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
 
+        // Catalogue de metiers : on s'assure que toutes les categories existent
+        // (cree les manquantes). Cela alimente l'autocompletion de la recherche
+        // meme si une seule categorie a une entreprise de demo.
+        [$categoryMap, $categoriesCreated] = $this->ensureCategories();
+
         $userRepository = $this->entityManager->getRepository(User::class);
         $artisanUser = $userRepository->findOneBy(['email' => self::ARTISAN_EMAIL]);
 
         $accountsJustCreated = false;
         if (null === $artisanUser) {
-            $artisanUser = $this->createDemoAccounts();
+            $artisanUser = $this->createDemoAccounts($categoryMap['menuiserie']);
             $accountsJustCreated = true;
         }
 
@@ -112,8 +117,8 @@ class SeedDemoCommand extends Command
             $coverJustSeeded = true;
         }
 
-        if (!$accountsJustCreated && !$historyJustSeeded && !$conversationJustSeeded && !$coverJustSeeded) {
-            $io->writeln('==> Comptes, historique, messagerie et photo de demo deja presents, rien a faire.');
+        if (!$accountsJustCreated && !$historyJustSeeded && !$conversationJustSeeded && !$coverJustSeeded && 0 === $categoriesCreated) {
+            $io->writeln('==> Comptes, historique, messagerie, photo et categories de demo deja presents, rien a faire.');
 
             return Command::SUCCESS;
         }
@@ -121,13 +126,14 @@ class SeedDemoCommand extends Command
         $this->entityManager->flush();
 
         $io->success(sprintf(
-            "Demo prete :\n- Artisan : %s\n- Client  : %s\nMot de passe (tous les comptes) : %s%s%s%s",
+            "Demo prete :\n- Artisan : %s\n- Client  : %s\nMot de passe (tous les comptes) : %s%s%s%s%s",
             self::ARTISAN_EMAIL,
             self::CUSTOMER_EMAIL,
             self::DEMO_PASSWORD,
             $historyJustSeeded ? "\nHistorique d'activite ajoute (rendez-vous, factures, avis)." : '',
             $conversationJustSeeded ? "\nConversation de demo ajoutee a la messagerie." : '',
             $coverJustSeeded ? "\nPhoto de couverture de demo ajoutee." : '',
+            $categoriesCreated > 0 ? sprintf("\n%d categorie(s) de metier ajoutee(s) au catalogue.", $categoriesCreated) : '',
         ));
 
         return Command::SUCCESS;
@@ -137,19 +143,8 @@ class SeedDemoCommand extends Command
      * Cree le compte artisan (fausse entreprise, deja approuvee) avec sa fiche
      * entreprise et ses prestations, ainsi qu'un compte client de demo.
      */
-    private function createDemoAccounts(): User
+    private function createDemoAccounts(ArtisanCategory $category): User
     {
-        // Categorie (recuperee si elle existe deja, sinon creee)
-        $categoryRepository = $this->entityManager->getRepository(ArtisanCategory::class);
-        $category = $categoryRepository->findOneBy(['slug' => 'menuiserie']);
-        if (null === $category) {
-            $category = new ArtisanCategory();
-            $category->setName('Menuiserie');
-            $category->setIcon('hammer');
-            $category->setSlug('menuiserie');
-            $this->entityManager->persist($category);
-        }
-
         // --- Compte artisan (fausse entreprise, deja approuvee) ---
         $artisanUser = new User();
         $artisanUser->setEmail(self::ARTISAN_EMAIL);
@@ -429,6 +424,49 @@ class SeedDemoCommand extends Command
         }
 
         return $customers;
+    }
+
+    /**
+     * S'assure que toutes les categories de metier existent (cree les
+     * manquantes, par slug). Renvoie la table slug => categorie ainsi que le
+     * nombre de categories nouvellement creees (pour le compte-rendu).
+     *
+     * @return array{0: array<string, ArtisanCategory>, 1: int}
+     */
+    private function ensureCategories(): array
+    {
+        $repository = $this->entityManager->getRepository(ArtisanCategory::class);
+
+        // Les icones sont des noms (mappes vers des emojis cote front, cf.
+        // categoryIcon.ts), coherents avec la categorie Menuiserie historique.
+        $definitions = [
+            ['name' => 'Plomberie', 'slug' => 'plomberie', 'icon' => 'droplet'],
+            ['name' => 'Électricité', 'slug' => 'electricite', 'icon' => 'bolt'],
+            ['name' => 'Menuiserie', 'slug' => 'menuiserie', 'icon' => 'hammer'],
+            ['name' => 'Peinture & Décoration', 'slug' => 'peinture-decoration', 'icon' => 'paint-roller'],
+            ['name' => 'Jardinage & Paysagisme', 'slug' => 'jardinage-paysagisme', 'icon' => 'leaf'],
+            ['name' => 'Serrurerie', 'slug' => 'serrurerie', 'icon' => 'key'],
+            ['name' => 'Coiffure à domicile', 'slug' => 'coiffure-a-domicile', 'icon' => 'scissors'],
+            ['name' => 'Ménage & Repassage', 'slug' => 'menage-repassage', 'icon' => 'spray-can'],
+        ];
+
+        $map = [];
+        $created = 0;
+        foreach ($definitions as $definition) {
+            $category = $repository->findOneBy(['slug' => $definition['slug']]);
+            if (null === $category) {
+                $category = new ArtisanCategory();
+                $category->setName($definition['name']);
+                $category->setSlug($definition['slug']);
+                $category->setIcon($definition['icon']);
+                $this->entityManager->persist($category);
+                ++$created;
+            }
+
+            $map[$definition['slug']] = $category;
+        }
+
+        return [$map, $created];
     }
 
     private function findServiceByName(Business $business, string $name): Service
