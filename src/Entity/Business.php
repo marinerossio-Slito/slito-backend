@@ -24,6 +24,14 @@ class Business
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $headline = null;
 
+    /**
+     * Dénomination libre choisie par l'artisan (ex : "Ébéniste d'art",
+     * "Spécialiste piscines enterrées"). Complète la catégorie principale et
+     * est prise en compte dans la recherche par mots-clés.
+     */
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $specialty = null;
+
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $description = null;
 
@@ -113,6 +121,18 @@ class Business
     public function setHeadline(?string $headline): static
     {
         $this->headline = $headline;
+
+        return $this;
+    }
+
+    public function getSpecialty(): ?string
+    {
+        return $this->specialty;
+    }
+
+    public function setSpecialty(?string $specialty): static
+    {
+        $this->specialty = $specialty;
 
         return $this;
     }

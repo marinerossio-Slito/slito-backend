@@ -59,12 +59,13 @@ class CatalogController extends AbstractController
     public function search(Request $request): JsonResponse
     {
         $category = $this->queryString($request, 'category');
+        $keyword = $this->queryString($request, 'q');
         $city = $this->queryString($request, 'city');
         $minPrice = $this->queryFloat($request, 'minPrice');
         $maxPrice = $this->queryFloat($request, 'maxPrice');
         $minRating = $this->queryFloat($request, 'minRating');
 
-        $businesses = $this->businessRepository->search($category, $city, $minPrice, $maxPrice);
+        $businesses = $this->businessRepository->search($category, $city, $minPrice, $maxPrice, $keyword);
 
         $results = [];
         foreach ($businesses as $business) {
@@ -137,6 +138,7 @@ class CatalogController extends AbstractController
             'id' => $business->getId(),
             'name' => $business->getName(),
             'headline' => $business->getHeadline(),
+            'specialty' => $business->getSpecialty(),
             'coverImage' => $business->getCoverImage(),
             'officeAddress' => $business->getOfficeAddress(),
             'category' => null !== $business->getCategory() ? $this->serializeCategory($business->getCategory()) : null,

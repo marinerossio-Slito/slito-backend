@@ -51,6 +51,9 @@ class SeedDemoCommand extends Command
     /** Photo de couverture de demo (menuisier au travail, Unsplash). */
     public const DEMO_COVER_IMAGE = 'https://images.unsplash.com/photo-1601058268499-e52658b8bb88?w=1200&q=80';
 
+    /** Denomination libre de demo (specialite de l'artisan). */
+    public const DEMO_SPECIALTY = 'Ébénisterie & agencement sur mesure';
+
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly UserPasswordHasherInterface $passwordHasher,
@@ -118,6 +121,12 @@ class SeedDemoCommand extends Command
             $coverJustSeeded = true;
         }
 
+        // Backfill : denomination libre (specialite) sur la fiche de demo.
+        if (null !== $business && null === $business->getSpecialty()) {
+            $business->setSpecialty(self::DEMO_SPECIALTY);
+            $coverJustSeeded = true;
+        }
+
         if (!$accountsJustCreated && !$historyJustSeeded && !$conversationJustSeeded && !$coverJustSeeded && 0 === $categoriesCreated && 0 === $categoriesRemoved) {
             $io->writeln('==> Comptes, historique, messagerie, photo et categories de demo deja a jour, rien a faire.');
 
@@ -169,6 +178,7 @@ class SeedDemoCommand extends Command
         $business = new Business();
         $business->setName('Atelier Bernard - Menuiserie');
         $business->setHeadline('Menuiserie sur mesure, du devis a la pose');
+        $business->setSpecialty(self::DEMO_SPECIALTY);
         $business->setCoverImage(self::DEMO_COVER_IMAGE);
         $business->setDescription(
             "Entreprise de demonstration creee pour presenter Slito : agencement interieur, ".

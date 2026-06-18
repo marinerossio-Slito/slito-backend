@@ -122,6 +122,7 @@ class ArtisanDashboardController extends AbstractController
             ->setName($dto->name)
             ->setCategory($category)
             ->setHeadline($dto->headline)
+            ->setSpecialty($dto->specialty)
             ->setDescription($dto->description)
             ->setCoverImage($dto->coverImage)
             ->setWebsite($dto->website)
@@ -229,6 +230,7 @@ class ArtisanDashboardController extends AbstractController
             'id' => $business->getId(),
             'name' => $business->getName(),
             'headline' => $business->getHeadline(),
+            'specialty' => $business->getSpecialty(),
             'description' => $business->getDescription(),
             'coverImage' => $business->getCoverImage(),
             'website' => $business->getWebsite(),

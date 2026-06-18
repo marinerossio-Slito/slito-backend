@@ -21,6 +21,9 @@ class UpsertBusinessRequest
     #[Assert\Length(max: 255)]
     public ?string $headline = null;
 
+    #[Assert\Length(max: 255)]
+    public ?string $specialty = null;
+
     #[Assert\Length(max: 5000)]
     public ?string $description = null;
 

@@ -23,7 +23,7 @@ class BusinessRepository extends ServiceEntityRepository
      *
      * @return Business[]
      */
-    public function search(?string $categorySlug, ?string $city, ?float $minPrice, ?float $maxPrice): array
+    public function search(?string $categorySlug, ?string $city, ?float $minPrice, ?float $maxPrice, ?string $keyword = null): array
     {
         $qb = $this->createQueryBuilder('b')
             ->innerJoin('b.artisan', 'a')->addSelect('a')
@@ -34,6 +34,13 @@ class BusinessRepository extends ServiceEntityRepository
         if (null !== $categorySlug) {
             $qb->andWhere('c.slug = :categorySlug')
                 ->setParameter('categorySlug', $categorySlug);
+        }
+
+        // Recherche par mots-clés : nom de l'entreprise, accroche, spécialité
+        // libre (denomination choisie par l'artisan) ou nom de la catégorie.
+        if (null !== $keyword) {
+            $qb->andWhere('LOWER(b.name) LIKE :keyword OR LOWER(b.headline) LIKE :keyword OR LOWER(b.specialty) LIKE :keyword OR LOWER(c.name) LIKE :keyword')
+                ->setParameter('keyword', '%'.mb_strtolower($keyword).'%');
         }
 
         if (null !== $city) {
