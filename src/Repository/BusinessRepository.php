@@ -36,13 +36,6 @@ class BusinessRepository extends ServiceEntityRepository
                 ->setParameter('categorySlug', $categorySlug);
         }
 
-        // Recherche par mots-clés : nom de l'entreprise, accroche, spécialité
-        // libre (denomination choisie par l'artisan) ou nom de la catégorie.
-        if (null !== $keyword) {
-            $qb->andWhere('LOWER(b.name) LIKE :keyword OR LOWER(b.headline) LIKE :keyword OR LOWER(b.specialty) LIKE :keyword OR LOWER(c.name) LIKE :keyword')
-                ->setParameter('keyword', '%'.mb_strtolower($keyword).'%');
-        }
-
         if (null !== $city) {
             $qb->andWhere('LOWER(b.officeAddress) LIKE :city')
                 ->setParameter('city', '%'.mb_strtolower($city).'%');
@@ -70,6 +63,50 @@ class BusinessRepository extends ServiceEntityRepository
             $unique[$business->getId()] = $business;
         }
 
-        return array_values($unique);
+        $results = array_values($unique);
+
+        // Recherche par mots-clés : nom de l'entreprise, accroche, spécialité
+        // libre (denomination choisie par l'artisan) ou nom de la catégorie.
+        // Filtree ici (et non en SQL) pour être insensible aux accents de façon
+        // portable, sans dependre de l'extension Postgres "unaccent" : "ebeniste"
+        // doit retrouver "Ébénisterie".
+        if (null !== $keyword && '' !== trim($keyword)) {
+            $needle = self::foldForSearch($keyword);
+
+            $results = array_values(array_filter($results, static function (Business $business) use ($needle): bool {
+                $haystack = self::foldForSearch(implode(' ', array_filter([
+                    $business->getName(),
+                    $business->getHeadline(),
+                    $business->getSpecialty(),
+                    $business->getCategory()?->getName(),
+                ])));
+
+                return str_contains($haystack, $needle);
+            }));
+        }
+
+        return $results;
+    }
+
+    /**
+     * Normalise une chaîne pour une comparaison insensible à la casse et aux
+     * accents (repli des caractères accentués français vers leur équivalent
+     * ASCII). Volontairement sans dépendance (pas d'ext-intl ni d'extension SQL).
+     */
+    private static function foldForSearch(string $value): string
+    {
+        $value = mb_strtolower($value, 'UTF-8');
+
+        $map = [
+            'à' => 'a', 'á' => 'a', 'â' => 'a', 'ä' => 'a', 'ã' => 'a', 'å' => 'a',
+            'è' => 'e', 'é' => 'e', 'ê' => 'e', 'ë' => 'e',
+            'ì' => 'i', 'í' => 'i', 'î' => 'i', 'ï' => 'i',
+            'ò' => 'o', 'ó' => 'o', 'ô' => 'o', 'ö' => 'o', 'õ' => 'o',
+            'ù' => 'u', 'ú' => 'u', 'û' => 'u', 'ü' => 'u',
+            'ç' => 'c', 'ñ' => 'n', 'ÿ' => 'y',
+            'œ' => 'oe', 'æ' => 'ae',
+        ];
+
+        return strtr($value, $map);
     }
 }
