@@ -449,6 +449,8 @@ class SeedDemoCommand extends Command
             ['name' => 'Menuiserie', 'slug' => 'menuiserie', 'icon' => 'hammer'],
             ['name' => 'Peinture & Décoration', 'slug' => 'peinture-decoration', 'icon' => 'paint-roller'],
             ['name' => 'Serrurerie', 'slug' => 'serrurerie', 'icon' => 'key'],
+            ['name' => 'Paysagiste', 'slug' => 'paysagiste', 'icon' => 'leaf'],
+            ['name' => 'Pisciniste', 'slug' => 'pisciniste', 'icon' => 'pool'],
         ];
 
         $map = [];
