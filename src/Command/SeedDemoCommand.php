@@ -7,8 +7,10 @@ use App\Entity\Artisan;
 use App\Entity\ArtisanCategory;
 use App\Entity\Business;
 use App\Entity\CalendarEvent;
+use App\Entity\Conversation;
 use App\Entity\Customer;
 use App\Entity\Invoice;
+use App\Entity\Message;
 use App\Entity\Review;
 use App\Entity\Service;
 use App\Entity\User;
@@ -79,8 +81,27 @@ class SeedDemoCommand extends Command
             }
         }
 
-        if (!$accountsJustCreated && !$historyJustSeeded) {
-            $io->writeln('==> Comptes et historique de demo deja presents, rien a faire.');
+        // Backfill : pour les bases de demo creees avant l'ajout de la
+        // messagerie (historique deja present mais aucune conversation), on
+        // ajoute la conversation de demo. Sur une base neuve, seedActivity s'en
+        // est deja charge : ce bloc est alors ignore (garde ci-dessous).
+        $conversationJustSeeded = false;
+        if (null !== $business && !$accountsJustCreated && !$historyJustSeeded) {
+            $hasConversation = $this->entityManager->getRepository(Conversation::class)->count(['business' => $business]) > 0;
+
+            if (!$hasConversation) {
+                $mainCustomer = $this->entityManager->getRepository(User::class)
+                    ->findOneBy(['email' => self::CUSTOMER_EMAIL])?->getCustomer();
+
+                if (null !== $mainCustomer) {
+                    $this->seedConversation($artisanUser, $business, $mainCustomer);
+                    $conversationJustSeeded = true;
+                }
+            }
+        }
+
+        if (!$accountsJustCreated && !$historyJustSeeded && !$conversationJustSeeded) {
+            $io->writeln('==> Comptes, historique et messagerie de demo deja presents, rien a faire.');
 
             return Command::SUCCESS;
         }
@@ -88,11 +109,12 @@ class SeedDemoCommand extends Command
         $this->entityManager->flush();
 
         $io->success(sprintf(
-            "Demo prete :\n- Artisan : %s\n- Client  : %s\nMot de passe (tous les comptes) : %s%s",
+            "Demo prete :\n- Artisan : %s\n- Client  : %s\nMot de passe (tous les comptes) : %s%s%s",
             self::ARTISAN_EMAIL,
             self::CUSTOMER_EMAIL,
             self::DEMO_PASSWORD,
             $historyJustSeeded ? "\nHistorique d'activite ajoute (rendez-vous, factures, avis)." : '',
+            $conversationJustSeeded ? "\nConversation de demo ajoutee a la messagerie." : '',
         ));
 
         return Command::SUCCESS;
@@ -298,6 +320,52 @@ class SeedDemoCommand extends Command
         $closure->setIsAvailability(true);
         $artisanUser->getArtisan()?->addCalendarEvent($closure);
         $this->entityManager->persist($closure);
+
+        // Une conversation client <-> artisan, pour que la messagerie ne soit
+        // pas vide lors de la demo. Le dernier message (cote client) reste non
+        // lu : l'artisan voit ainsi une notification de message non lu.
+        $this->seedConversation($artisanUser, $business, $lea);
+    }
+
+    /**
+     * Cree une conversation de demonstration entre un client et l'entreprise,
+     * avec un echange realiste de quelques messages.
+     */
+    private function seedConversation(User $artisanUser, Business $business, Customer $customer): void
+    {
+        $createdAt = (new \DateTimeImmutable())->modify('-16 days')->setTime(18, 12);
+
+        $conversation = new Conversation();
+        $conversation->setCustomer($customer);
+        $conversation->setBusiness($business);
+        $conversation->setIsBlocked(false);
+        $conversation->setCreatedAt($createdAt);
+
+        // [expediteur, contenu]. Le dernier message vient du client et restera
+        // non lu (cf. plus bas) pour simuler une demande en attente de reponse.
+        $exchange = [
+            [$customer->getUser(), "Bonjour, suite a la pose du parquet je suis ravie du resultat ! La fenetre du salon ferme toujours mal, seriez-vous disponible pour y jeter un oeil ?"],
+            [$artisanUser, "Bonjour Lea, merci beaucoup pour votre retour ! Bien sur, je peux passer la semaine prochaine. Quel jour vous conviendrait le mieux ?"],
+            [$customer->getUser(), "Mardi matin serait parfait si possible. Merci beaucoup !"],
+        ];
+
+        $sentAt = $createdAt;
+        $lastIndex = \count($exchange) - 1;
+        foreach ($exchange as $index => [$sender, $content]) {
+            $sentAt = $sentAt->modify(sprintf('+%d minutes', 35 * ($index + 1)));
+
+            $message = new Message();
+            $message->setContent($content);
+            $message->setSentAt($sentAt);
+            // Tout est lu sauf le dernier message (du client) : l'artisan a donc
+            // un message non lu a traiter.
+            $message->setIsRead($index !== $lastIndex);
+            $message->setSender($sender);
+            $conversation->addMessage($message);
+            $this->entityManager->persist($message);
+        }
+
+        $this->entityManager->persist($conversation);
     }
 
     /**
